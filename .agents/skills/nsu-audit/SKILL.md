@@ -32,7 +32,7 @@ Add to your MCP settings:
       "args": ["<project-root>/nsu-audit-engine/mcp-server/server.py"],
       "env": {
         "NSU_API_URL": "http://localhost:8000",
-        "NSU_API_KEY": "dev_secret_key"
+        "NSU_API_KEY": "MySuperSecretNSUKey2026!"
       }
     }
   }

@@ -52,9 +52,12 @@ class AuthConfig:
                     jwt_secret = f.read().strip()
             else:
                 jwt_secret = secrets.token_hex(32)
-                os.makedirs(os.path.dirname(secret_file), exist_ok=True)
-                with open(secret_file, "w") as f:
-                    f.write(jwt_secret)
+                try:
+                    os.makedirs(os.path.dirname(secret_file), exist_ok=True)
+                    with open(secret_file, "w") as f:
+                        f.write(jwt_secret)
+                except OSError:
+                    pass  # Read-only filesystem (Serverless environments like Vercel)
 
         sessions_file = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),

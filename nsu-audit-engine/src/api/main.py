@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import time
+import sys
+import os
+
+# Ensure the parent 'src' directory is in the path so Vercel correctly resolves 'api.routers'
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from api.routers import auth, audit, history
 from api.routers.history import record_call
