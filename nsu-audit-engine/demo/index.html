@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSU Graduation Audit Engine - Web Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="header-content">
+                <div class="logo">
+                    <h1>NSU Audit Engine</h1>
+                    <span class="badge">Web Demo</span>
+                </div>
+                <p>Professional Graduation Audit System</p>
+            </div>
+        </header>
+
+        <main>
+            <section class="control-panel">
+                <div class="card import-card">
+                    <h2>1. Import Transcript</h2>
+                    <div class="actions">
+                        <button id="loadSampleBtn" class="btn primary">Load Sample Data (BBA)</button>
+                        <div class="file-upload">
+                            <label for="csvFile" class="btn secondary">Upload CSV</label>
+                            <input type="file" id="csvFile" accept=".csv">
+                        </div>
+                    </div>
+                    <div id="fileStatus" class="status-text">No file loaded</div>
+                </div>
+
+                <div class="card settings-card">
+                    <h2>2. Settings</h2>
+                    <div class="form-group">
+                        <label>Program:</label>
+                        <select id="programSelect" disabled>
+                            <option value="BBA">BBA (Business Administration)</option>
+                            <option value="CSE">CSE (Computer Science)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Waivers (comma-separated):</label>
+                        <input type="text" id="waiverInput" placeholder="e.g. ENG102, BUS112">
+                    </div>
+                    <button id="runAuditBtn" class="btn action" disabled>Run Audit</button>
+                </div>
+            </section>
+
+            <section id="resultsArea" class="results-area hidden">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+                    <button class="tab-btn" data-tab="audit">Full Audit</button>
+                    <button class="tab-btn" data-tab="transcript">Transcript</button>
+                </div>
+
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <div class="stats-grid">
+                        <div class="stat-card" id="cgpaCard">
+                            <h3>CGPA</h3>
+                            <div class="value" id="cgpaValue">--</div>
+                            <div class="meta" id="cgpaMeta">--</div>
+                        </div>
+                        <div class="stat-card" id="creditsCard">
+                            <h3>Credits</h3>
+                            <div class="value" id="creditsValue">--</div>
+                            <div class="meta" id="creditsMeta">Total Attempted: --</div>
+                        </div>
+                        <div class="stat-card" id="statusCard">
+                            <h3>Status</h3>
+                            <div class="value" id="statusValue">--</div>
+                            <div class="meta" id="statusMeta">--</div>
+                        </div>
+                    </div>
+
+                    <div class="charts-grid">
+                        <div class="chart-container">
+                            <h3>Semester GPA</h3>
+                            <div id="semesterChart" class="bar-chart"></div>
+                        </div>
+                        <div class="chart-container">
+                            <h3>Grade Distribution</h3>
+                            <div id="gradeChart" class="bar-chart"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Tab -->
+                <div id="audit" class="tab-content">
+                    <div class="audit-report">
+                        <div id="auditSummary" class="audit-section"></div>
+                        <div id="deficiencies" class="audit-section"></div>
+                        <div id="retakes" class="audit-section"></div>
+                    </div>
+                </div>
+
+                <!-- Transcript Tab -->
+                <div id="transcript" class="tab-content">
+                    <div class="table-container">
+                        <table id="transcriptTable">
+                            <thead>
+                                <tr>
+                                    <th>Course</th>
+                                    <th>Credits</th>
+                                    <th>Grade</th>
+                                    <th>Semester</th>
+                                    <th>Points</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>NSU Audit Engine Web Demo &copy; 2026</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
