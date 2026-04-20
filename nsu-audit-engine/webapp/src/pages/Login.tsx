@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +10,7 @@ export default function Login() {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
 
   // Dev/OTP Login state
   const [showEmailLogin, setShowEmailLogin] = useState(false);
@@ -19,6 +20,20 @@ export default function Login() {
   const [devMessage, setDevMessage] = useState('');
 
   const GOOGLE_CLIENT_ID = '834924534674-dpe5j0pogrc64c3j23v6d2584ubn72kn.apps.googleusercontent.com';
+
+  useEffect(() => {
+    // Check if Google Identity Services script is loaded
+    const checkScript = () => {
+      if ((window as any).google?.accounts?.id) {
+        console.log('✅ Google Identity Services loaded');
+        setGoogleScriptLoaded(true);
+      } else {
+        console.warn('⏳ Waiting for Google script...');
+        setTimeout(checkScript, 500);
+      }
+    };
+    checkScript();
+  }, []);
 
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     setIsLoading(true);
@@ -32,16 +47,14 @@ export default function Login() {
       const { access_token, user } = res.data;
       login(access_token, user);
       navigate('/');
-    } catch (err: unknown) {
-      const errorMessage = (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Authentication failed. Please use your NSU email.';
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'Authentication failed. Please use your NSU email.';
       setError(errorMessage);
-      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── OTP Login Flow ──
   const handleRequestOtp = async () => {
     if (!email.endsWith('@northsouth.edu')) {
       setError('Only @northsouth.edu emails are allowed.');
@@ -53,8 +66,8 @@ export default function Login() {
       const res = await api.post('/api/v1/auth/request-otp', { email });
       setOtpSent(true);
       setDevMessage(res.data.message || 'OTP sent!');
-    } catch (err: unknown) {
-      const errorMessage = (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to send OTP.';
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'Failed to send OTP.';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -69,8 +82,8 @@ export default function Login() {
       const { access_token, user } = res.data;
       login(access_token, user);
       navigate('/');
-    } catch (err: unknown) {
-      const errorMessage = (err as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Invalid OTP.';
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.detail || 'Invalid OTP.';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
@@ -78,85 +91,93 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8 space-y-8 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-100 flex flex-col justify-center items-center p-6">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-10 space-y-8 border border-slate-200">
         
-        {/* Decorative line */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-nsu-blue to-nsu-cyan" />
-        
-        <div className="text-center space-y-2">
-          <div className="mx-auto w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-            <GraduationCap className="w-8 h-8 text-nsu-blue" />
+        <div className="text-center space-y-4">
+          <div className="mx-auto w-20 h-20 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100">
+            <GraduationCap className="w-10 h-10 text-slate-900" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">NSU Audit Engine</h1>
-          <p className="text-slate-500 text-sm">Sign in with your @northsouth.edu account</p>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">NSU Audit</h1>
+            <p className="text-slate-500 font-medium text-sm">Graduation Verification Portal</p>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-start space-x-3 text-sm">
+          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-start space-x-3 text-sm font-semibold">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p>{error}</p>
           </div>
         )}
 
-        <div className="flex flex-col items-center justify-center w-full space-y-4 pt-4">
+        <div className="space-y-6">
           {isLoading ? (
-            <div className="flex flex-col items-center text-slate-500 space-y-3">
-              <Loader2 className="w-6 h-6 animate-spin text-nsu-cyan" />
-              <span className="text-sm font-medium">Verifying credentials...</span>
+            <div className="flex flex-col items-center py-8 text-slate-500 space-y-3">
+              <Loader2 className="w-8 h-8 animate-spin text-slate-900" />
+              <span className="text-sm font-bold uppercase tracking-widest">Processing...</span>
             </div>
           ) : !showEmailLogin ? (
-            <>
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError('Google initialization failed. Try Email Login below.')}
-                useOneTap
-                theme="outline"
-                size="large"
-                shape="pill"
-              />
+            <div className="space-y-6">
+              {/* Google Sign-in Wrapper */}
+              <div id="google-button-container" className="flex justify-center min-h-[44px] w-full">
+                {googleScriptLoaded ? (
+                  <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => setError('Google sign-in failed.')}
+                    useOneTap
+                    theme="filled_blue"
+                    size="large"
+                    shape="pill"
+                    width="320"
+                  />
+                ) : (
+                  <div className="animate-pulse bg-slate-100 h-11 w-full rounded-full" />
+                )}
+              </div>
               
-              <div className="flex items-center w-full space-x-3 pt-2">
-                <div className="flex-1 h-px bg-slate-200" />
-                <span className="text-xs text-slate-400 font-medium">OR</span>
-                <div className="flex-1 h-px bg-slate-200" />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
+                <div className="relative flex justify-center text-[10px] uppercase font-black tracking-widest text-slate-400">
+                  <span className="bg-white px-4 italic">Alternative Access</span>
+                </div>
               </div>
 
               <button
                 onClick={() => setShowEmailLogin(true)}
-                className="w-full flex items-center justify-center space-x-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2.5 px-4 rounded-full transition-colors text-sm"
+                className="w-full flex items-center justify-center space-x-3 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-full transition-all active:scale-95 shadow-lg shadow-slate-900/10"
               >
-                <Mail className="w-4 h-4" />
-                <span>Sign in with NSU Email (OTP)</span>
+                <Mail className="w-5 h-5" />
+                <span>Sign in with Email</span>
               </button>
-            </>
+            </div>
           ) : !otpSent ? (
-            <div className="w-full space-y-3">
+            <div className="space-y-4">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="yourname@northsouth.edu"
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-nsu-blue/20 focus:border-nsu-blue"
+                placeholder="student@northsouth.edu"
+                className="w-full px-5 py-3.5 rounded-2xl border-2 border-slate-100 focus:border-slate-900 focus:outline-none transition-all font-medium"
               />
               <button
                 onClick={handleRequestOtp}
                 disabled={!email}
-                className="w-full bg-nsu-blue hover:bg-nsu-blue/90 text-white font-medium py-2.5 px-4 rounded-xl transition-colors text-sm disabled:opacity-50"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-2xl transition-all disabled:opacity-50"
               >
-                Send OTP
+                Request OTP
               </button>
               <button
                 onClick={() => setShowEmailLogin(false)}
-                className="w-full text-slate-400 hover:text-slate-600 text-xs font-medium transition-colors"
+                className="w-full text-slate-400 hover:text-slate-900 text-xs font-bold transition-colors"
               >
-                ← Back to Google Sign-In
+                ← Use Google Sign-In
               </button>
             </div>
           ) : (
-            <div className="w-full space-y-3">
+            <div className="space-y-5">
               {devMessage && (
-                <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl text-xs font-mono whitespace-pre-wrap">
+                <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 px-4 py-3 rounded-xl text-xs font-mono text-center">
                   {devMessage}
                 </div>
               )}
@@ -164,25 +185,27 @@ export default function Login() {
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
-                placeholder="Enter 6-digit OTP"
+                placeholder="6-digit code"
                 maxLength={6}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm text-center tracking-widest font-bold focus:outline-none focus:ring-2 focus:ring-nsu-blue/20 focus:border-nsu-blue"
+                className="w-full px-5 py-4 rounded-2xl border-2 border-slate-100 text-center tracking-[0.5em] text-2xl font-black focus:border-slate-900 focus:outline-none transition-all"
               />
               <button
                 onClick={handleVerifyOtp}
                 disabled={otp.length !== 6}
-                className="w-full bg-nsu-blue hover:bg-nsu-blue/90 text-white font-medium py-2.5 px-4 rounded-xl transition-colors text-sm disabled:opacity-50"
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-2xl transition-all disabled:opacity-50"
               >
-                Verify & Sign In
+                Verify & Login
               </button>
             </div>
           )}
         </div>
         
-        <p className="text-xs text-center text-slate-400 font-medium pt-4">
-          Secure, automated graduation auditing.
+        <p className="text-[10px] text-center text-slate-300 font-black uppercase tracking-[0.2em] pt-4">
+          Automated Graduation Audit
         </p>
       </div>
     </div>
   );
 }
+
+

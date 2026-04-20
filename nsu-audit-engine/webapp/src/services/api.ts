@@ -7,20 +7,27 @@ const API_KEY = import.meta.env.VITE_NSU_API_KEY || 'dev_secret_key';
 // When running as a native Android app, localhost doesn't work.
 // Use 10.0.2.2 for Android emulator, or your deployed server URL.
 function getApiUrl(): string {
+  // 1. Check for explicit environment variable (REQUIRED for Cloudflare Tunnel to bypass Vercel limits)
   const envUrl = import.meta.env.VITE_API_BASE_URL;
-
-  // If explicitly set in env, use it
   if (envUrl) return envUrl;
 
-  // Check if running inside Capacitor native shell
+  // 2. Capacitor-specific logic for native Android app
   const isNative = typeof (window as any)?.Capacitor !== 'undefined' 
     && (window as any).Capacitor?.isNativePlatform?.();
 
   if (isNative) {
-    // Android emulator uses 10.0.2.2 to reach host machine's localhost
+    // Android emulator uses 10.0.2.2. For real devices, the Tunnel URL must be provided in env.
     return 'http://10.0.2.2:8000';
   }
 
+  // 3. Vercel deployment detection
+  // If we are in a browser and not on localhost, we are likely on Vercel.
+  // Use the current origin so Vercel routes `/api/v1/...` to the serverless backend.
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return window.location.origin;
+  }
+
+  // 4. Fallback to local machine for local Vite dev server
   return 'http://localhost:8000';
 }
 

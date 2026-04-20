@@ -1,15 +1,52 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", "Outfit", system-ui, sans-serif;
+  
+  /* NSU Brand Palette (Refined) */
+  --color-brand-primary: #133C8B;
+  --color-brand-secondary: #00A9E0;
+  --color-brand-accent: #6366f1;
+  
+  /* Semantic Colors */
+  --color-glass-bg: rgba(255, 255, 255, 0.7);
+  --color-glass-border: rgba(255, 255, 255, 0.3);
+  
+  /* Transitions */
+  --transition-premium: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 @layer base {
+  :root {
+    --nsu-blue: #133C8B;
+    --nsu-cyan: #00A9E0;
+  }
+
   body {
-    background-color: #f8fafc;
-    color: #0f172a;
+    @apply bg-slate-50 text-slate-900 selection:bg-brand-secondary/20;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-@theme {
-  --color-nsu-blue: #133C8B;
-  --color-nsu-cyan: #00A9E0;
+@layer components {
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/30 shadow-2xl shadow-slate-200/50;
+  }
+  
+  .btn-premium {
+    @apply relative overflow-hidden transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
 }
+
+/* Smooth page transitions */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 400ms, transform 400ms;
+}
+

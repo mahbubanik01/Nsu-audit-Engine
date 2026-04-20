@@ -10,6 +10,35 @@ from api.dependencies import get_current_user
 from parsers.document_router import DocumentRouter
 from calculators.audit_calculator import AuditCalculator
 from models.program import ProgramFactory
+import datetime
+
+USER_AUDITS_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    "data", "user_audits.json"
+)
+
+def _save_audit(email: str, audit_data: dict):
+    audits = {}
+    if os.path.exists(USER_AUDITS_FILE):
+        try:
+            with open(USER_AUDITS_FILE, "r") as f:
+                audits = json.load(f)
+        except Exception:
+            pass
+            
+    if email not in audits:
+        audits[email] = []
+        
+    # Add timestamp
+    audit_data["scan_timestamp"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    audits[email].append(audit_data)
+    
+    try:
+        os.makedirs(os.path.dirname(USER_AUDITS_FILE), exist_ok=True)
+        with open(USER_AUDITS_FILE, "w") as f:
+            json.dump(audits, f, indent=2)
+    except Exception:
+        pass # Ignore file write errors on Vercel
 
 router = APIRouter()
 
@@ -129,9 +158,24 @@ async def run_audit(
         response["extra_courses"] = report_dict.get("extra_courses", [])
         response["unrecognized_courses"] = report_dict.get("unrecognized_courses", [])
 
+        # Save the audit to history
+        _save_audit(email, response)
+
         return response
         
     finally:
         # Cleanup temp file
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+@router.get("/history")
+async def get_audit_history(email: str = Depends(get_current_user)):
+    """Retrieve all previously saved audits for the current user."""
+    audits = {}
+    if os.path.exists(USER_AUDITS_FILE):
+        try:
+            with open(USER_AUDITS_FILE, "r") as f:
+                audits = json.load(f)
+        except Exception:
+            pass
+    return {"audits": list(reversed(audits.get(email, [])))}

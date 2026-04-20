@@ -8,14 +8,24 @@ Usage:
     NSU_API_URL=https://my-api.com python server.py
 """
 
+import io
 import os
 import sys
 import json
 import base64
 import asyncio
 import mimetypes
+import datetime
 from pathlib import Path
 from typing import Optional
+
+# Force UTF-8 for Windows compatibility with special characters (✓, ✗, ═, etc.)
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except (AttributeError, io.UnsupportedOperation):
+        pass
 
 import httpx
 from mcp.server import Server
@@ -23,8 +33,8 @@ from mcp.server.stdio import stdio_server
 from mcp.types import Tool, TextContent
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-API_BASE_URL = os.environ.get("NSU_API_URL", "http://localhost:8000")
-API_KEY = os.environ.get("NSU_API_KEY", "dev_secret_key")
+API_BASE_URL = os.environ.get("NSU_API_URL", "https://nsu-audit-engine.vercel.app")
+API_KEY = os.environ.get("NSU_API_KEY", "MySuperSecretNSUKey2026!")
 
 DEFAULT_HEADERS = {
     "X-API-Key": API_KEY,
@@ -160,6 +170,23 @@ async def list_tools() -> list[Tool]:
                 },
             },
         ),
+        Tool(
+            name="get_user_audit_history",
+            description=(
+                "Get the authenticated user's past graduation scans/audits. "
+                "Requires a valid JWT token."
+            ),
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "description": "JWT access token from verify_otp",
+                    }
+                },
+                "required": ["token"],
+            },
+        ),
     ]
 
 
@@ -227,20 +254,20 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 audit = resp.json()
                 # Format a human-readable summary alongside the raw JSON
                 summary_lines = [
-                    "═" * 60,
+                    "=" * 60,
                     "GRADUATION AUDIT RESULTS",
-                    "═" * 60,
+                    "=" * 60,
                     f"Student: {audit['student'].get('name', 'N/A')} ({audit['student'].get('id', 'N/A')})",
                     f"Program: {audit['program']}",
                     "",
-                    f"{'✓ ELIGIBLE' if audit['summary']['is_eligible'] else '✗ NOT ELIGIBLE'} TO GRADUATE",
+                    f"{'[PASS] ELIGIBLE' if audit['summary']['is_eligible'] else '[FAIL] NOT ELIGIBLE'} TO GRADUATE",
                     "",
                     f"CGPA:            {audit['summary']['cgpa']}",
                     f"Credits Earned:  {audit['summary']['credits_earned']}",
                     f"Credits Required: {audit['summary']['credits_required']}",
                     f"Records Parsed:  {audit['raw_records']}",
                     f"Retaken Courses: {len(audit['retaken_courses'])}",
-                    "═" * 60,
+                    "=" * 60,
                     "",
                     "Full JSON response:",
                     json.dumps(audit, indent=2),
@@ -270,7 +297,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 formats = resp.json().get("supported_extensions", [])
                 return [TextContent(
                     type="text",
-                    text=f"Supported transcript formats:\n" + "\n".join(f"  • {ext}" for ext in sorted(formats)),
+                    text=f"Supported transcript formats:\n" + "\n".join(f"  - {ext}" for ext in sorted(formats)),
                 )]
             return [TextContent(type="text", text=f"Error {resp.status_code}: {resp.text}")]
 
@@ -283,7 +310,91 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 params={"limit": limit},
             )
             if resp.status_code == 200:
-                return [TextContent(type="text", text=json.dumps(resp.json(), indent=2))]
+                data = resp.json()
+                calls = data.get("calls", [])
+                
+                # Format a human-readable summary alongside the raw JSON
+                summary_lines = [
+                    "=" * 80,
+                    "API CALL HISTORY (TELEMETRY)",
+                    "=" * 80,
+                    f"Total Logged: {data.get('total_logged', 0)}",
+                    f"Showing:      {data.get('showing', 0)}",
+                    "-" * 80,
+                    f"{'METHOD':<8} | {'ENDPOINT':<40} | {'STATUS':<6} | {'LATENCY':<10} | {'TIME'}",
+                    "-" * 80,
+                ]
+                
+                for call in calls:
+                    method = call.get("method", "UNK")
+                    path = call.get("path", "")
+                    if len(path) > 37:
+                        path = path[:34] + "..."
+                    status = str(call.get("status_code", 0))
+                    latency = f"{call.get('duration_ms', 0):.0f}ms"
+                    
+                    # Convert ISO timestamp to a simpler format
+                    try:
+                        ts = datetime.datetime.fromisoformat(call.get("timestamp", "").replace("Z", "+00:00"))
+                        time_str = ts.strftime("%H:%M:%S")
+                    except Exception:
+                        time_str = call.get("timestamp", "")
+                    
+                    summary_lines.append(f"{method:<8} | {path:<40} | {status:<6} | {latency:<10} | {time_str}")
+                    
+                summary_lines.extend([
+                    "=" * 80,
+                    "",
+                    "Raw JSON response:",
+                    json.dumps(data, indent=2)
+                ])
+                
+                return [TextContent(type="text", text="\n".join(summary_lines))]
+            return [TextContent(type="text", text=f"Error {resp.status_code}: {resp.text}")]
+
+        # ── get_user_audit_history ──────────────────────────────────
+        elif name == "get_user_audit_history":
+            token = arguments["token"]
+            resp = await client.get(
+                "/api/v1/audit/history",
+                headers=_auth_headers(token),
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                audits = data.get("audits", [])
+                
+                summary_lines = [
+                    "=" * 80,
+                    "USER AUDIT HISTORY (PAST SCANS)",
+                    "=" * 80,
+                    f"Total Scans Found: {len(audits)}",
+                    "-" * 80,
+                    f"{'STUDENT NAME':<20} | {'PROGRAM':<7} | {'CGPA':<5} | {'ELIGIBILITY':<12} | {'TIME'}",
+                    "-" * 80,
+                ]
+                
+                for a in audits:
+                    student = a.get("student", {}).get("name", "Unknown")
+                    if len(student) > 19: student = student[:16] + "..."
+                    prog = a.get("program", "UNK")
+                    cgpa = f"{a.get('summary', {}).get('cgpa', 0.0):.2f}"
+                    elig = "Eligible" if a.get("summary", {}).get("is_eligible", False) else "Not Eligible"
+                    
+                    try:
+                        ts = datetime.datetime.fromisoformat(a.get("scan_timestamp", "").replace("Z", "+00:00"))
+                        time_str = ts.strftime("%Y-%m-%d %H:%M")
+                    except Exception:
+                        time_str = a.get("scan_timestamp", "Recent")[:16]
+                        
+                    summary_lines.append(f"{student:<20} | {prog:<7} | {cgpa:<5} | {elig:<12} | {time_str}")
+                
+                summary_lines.extend([
+                    "=" * 80,
+                    "",
+                    "Raw JSON response:",
+                    json.dumps(data, indent=2)
+                ])
+                return [TextContent(type="text", text="\n".join(summary_lines))]
             return [TextContent(type="text", text=f"Error {resp.status_code}: {resp.text}")]
 
         # ── Unknown tool ─────────────────────────────────────────────
