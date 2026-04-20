@@ -114,27 +114,24 @@ async def run_audit(
             raise HTTPException(status_code=500, detail=f"Failed to calculate audit: {str(e)}")
 
         # 3. Format Response
-        # Convert dataclass to dict to easily serialize with FastAPI
-        report_dict = asdict(report)
-        
-        # Structure the response
+        # Access dataclass fields directly for correctness (asdict nesting is complex)
         response = {
             "student": {
-                "id": report_dict.get("student_id") or "Unknown",
-                "name": report_dict.get("student_name") or "Unknown"
+                "id": report.student_id or "Unknown",
+                "name": report.student_name or "Unknown"
             },
-            "program": report_dict.get("program") or program_type.upper(),
+            "program": report.program_name or program_type.upper(),
             "summary": {
-                "is_eligible": report_dict.get("is_eligible", False),
-                "cgpa": report_dict.get("cgpa", 0.0),
-                "credits_earned": report_dict.get("total_credits_earned", 0.0),
-                "credits_required": report_dict.get("total_credits_required", 124.0)
+                "is_eligible": report.can_graduate,
+                "cgpa": round(report.gpa_report.cgpa, 2),
+                "credits_earned": report.credit_report.total_earned_credits,
+                "credits_required": program_obj.total_credits_required
             },
-            "deficiencies": report_dict.get("deficiencies", {}),
+            "deficiencies": asdict(report.deficiencies),
             "retaken_courses": [],
             "semester_breakdown": [],
-            "extra_courses": [],
-            "unrecognized_courses": [],
+            "extra_courses": report.extra_courses,       # already list[dict]
+            "unrecognized_courses": report.unrecognized_courses,  # already list[dict]
             "raw_records": len(transcript)
         }
         
@@ -156,16 +153,12 @@ async def run_audit(
             semesters.setdefault(r.semester, []).append(r)
             
         for sem, records in semesters.items():
-            sem_gpa = report_dict.get("gpa_report", {}).get("semester_gpas", {}).get(sem, 0.0)
+            sem_gpa = report.gpa_report.semester_gpas.get(sem, 0.0)
             response["semester_breakdown"].append({
                 "semester": sem,
-                "gpa": sem_gpa,
+                "gpa": round(sem_gpa, 2),
                 "courses": [{"code": r.course_code, "grade": r.grade, "credits": r.credits} for r in records]
             })
-
-        # Add extra / non-required courses
-        response["extra_courses"] = report_dict.get("extra_courses", [])
-        response["unrecognized_courses"] = report_dict.get("unrecognized_courses", [])
 
         # Save the audit to history
         _save_audit(email, response)

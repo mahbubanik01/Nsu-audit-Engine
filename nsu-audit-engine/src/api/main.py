@@ -1,8 +1,14 @@
+from dotenv import load_dotenv
+import os
+
+# Load .env BEFORE any config imports read environment variables
+_env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+load_dotenv(_env_path)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import time
 import sys
-import os
 
 # Ensure the parent 'src' directory is in the path so Vercel correctly resolves 'api.routers'
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

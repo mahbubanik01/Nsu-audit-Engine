@@ -75,4 +75,5 @@ export interface AuditResponse {
   extra_courses: ExtraCourse[];
   unrecognized_courses: ExtraCourse[];
   raw_records: number;
+  scan_timestamp?: string;
 }
