@@ -13,7 +13,7 @@ from models.program import ProgramFactory
 import datetime
 
 USER_AUDITS_FILE = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
     "data", "user_audits.json"
 )
 
@@ -37,7 +37,9 @@ def _save_audit(email: str, audit_data: dict):
         os.makedirs(os.path.dirname(USER_AUDITS_FILE), exist_ok=True)
         with open(USER_AUDITS_FILE, "w") as f:
             json.dump(audits, f, indent=2)
-    except Exception:
+        print(f"[AuditHistory] Saved audit for {email} to {USER_AUDITS_FILE}")
+    except Exception as e:
+        print(f"[AuditHistory] Failed to save audit for {email}: {e}")
         pass # Ignore file write errors on Vercel
 
 router = APIRouter()
@@ -178,11 +180,16 @@ async def run_audit(
 @router.get("/history")
 async def get_audit_history(email: str = Depends(get_current_user)):
     """Retrieve all previously saved audits for the current user."""
+    print(f"[AuditHistory] Fetching history for email: {email}")
     audits = {}
     if os.path.exists(USER_AUDITS_FILE):
         try:
             with open(USER_AUDITS_FILE, "r") as f:
                 audits = json.load(f)
-        except Exception:
+            print(f"[AuditHistory] Loaded {len(audits.get(email, []))} records for {email} from {USER_AUDITS_FILE}")
+        except Exception as e:
+            print(f"[AuditHistory] Error reading history file: {e}")
             pass
+    else:
+        print(f"[AuditHistory] History file does not exist: {USER_AUDITS_FILE}")
     return {"audits": list(reversed(audits.get(email, [])))}

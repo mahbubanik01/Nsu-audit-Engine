@@ -24,4 +24,7 @@ class AuditResponse(BaseModel):
     deficiencies: Dict[str, Any]
     retaken_courses: List[Dict[str, Any]]
     semester_breakdown: List[Dict[str, Any]]
+    extra_courses: List[Dict[str, Any]] = []
+    unrecognized_courses: List[Dict[str, Any]] = []
     raw_records: int
+    scan_timestamp: Optional[str] = None
