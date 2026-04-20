@@ -20,7 +20,8 @@ class CourseRecord:
     def __post_init__(self):
         """Validate and normalize data"""
         self.course_code = self.course_code.strip().upper()
-        self.grade = self.grade.strip().upper()
+        # Remove spaces in grade (e.g., "A -" -> "A-")
+        self.grade = self.grade.strip().upper().replace(" ", "")
         self.semester = self.semester.strip()
         
         try:

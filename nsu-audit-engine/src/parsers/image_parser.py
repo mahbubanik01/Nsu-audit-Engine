@@ -23,8 +23,9 @@ class ImageParser:
     3. Regex extraction of course records
     """
 
-    COURSE_CODE_RE = re.compile(r"\b([A-Z]{2,4}\d{3,4}[A-Z]?)\b")
-    GRADE_RE = re.compile(r"\b(A|A-|B\+|B|B-|C\+|C|C-|D\+|D|F|W|I)\b")
+    # Improved regex to handle OCR artifacts like spaces
+    COURSE_CODE_RE = re.compile(r"\b([A-Z]{2,4})\s?(\d{3,4}[A-Z]?)\b")
+    GRADE_RE = re.compile(r"\b(A\s?[-]?|B\s?[+-]?|C\s?[+-]?|D\s?[+]?|F|W|I)\b", re.IGNORECASE)
     SEMESTER_RE = re.compile(
         r"\b(Spring|Summer|Fall|Winter)\s+(\d{4})\b", re.IGNORECASE
     )
@@ -152,8 +153,9 @@ class ImageParser:
             if not course_match or not grade_match:
                 continue
 
-            course_code = course_match.group(1)
-            grade = grade_match.group(1)
+            # Join prefix and digits (e.g., "CSE" + "115" -> "CSE115")
+            course_code = f"{course_match.group(1)}{course_match.group(2)}".upper().replace(" ", "")
+            grade = grade_match.group(1).upper().replace(" ", "")
 
             # Extract credits (look for small numbers)
             credits = 3.0

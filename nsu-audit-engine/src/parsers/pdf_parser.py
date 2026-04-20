@@ -33,10 +33,9 @@ class PDFParser:
     }
 
     # Course code pattern (e.g., CSE115, MAT120, ENG102L)
-    COURSE_CODE_RE = re.compile(r"\b([A-Z]{2,4}\d{3,4}[A-Z]?)\b")
-
+    COURSE_CODE_RE = re.compile(r"\b([A-Z]{2,4})\s?(\d{3,4}[A-Z]?)\b")
     # Grade pattern
-    GRADE_RE = re.compile(r"\b(A|A-|B\+|B|B-|C\+|C|C-|D\+|D|F|W|I)\b")
+    GRADE_RE = re.compile(r"\b(A\s?[-]?|B\s?[+-]?|C\s?[+-]?|D\s?[+]?|F|W|I)\b", re.IGNORECASE)
 
     # Semester pattern (e.g., "Spring 2023", "Fall 2024")
     SEMESTER_RE = re.compile(
@@ -169,8 +168,8 @@ class PDFParser:
                     grade_match = cls.GRADE_RE.search(line)
 
                     if course_match and grade_match:
-                        course_code = course_match.group(1)
-                        grade = grade_match.group(1)
+                        course_code = f"{course_match.group(1)}{course_match.group(2)}".upper().replace(" ", "")
+                        grade = grade_match.group(1).upper().replace(" ", "")
 
                         # Try to extract credits (number near course code)
                         credits = cls._extract_credits_from_line(line)
@@ -222,11 +221,15 @@ class PDFParser:
     ) -> Optional[CourseRecord]:
         """Parse a table row using identified column mapping."""
         try:
-            course_code = str(row[col_map["course_code"]] or "").strip()
-            if not cls.COURSE_CODE_RE.match(course_code):
+            course_code = str(row[col_map["course_code"]] or "").strip().upper().replace(" ", "")
+            code_match = cls.COURSE_CODE_RE.match(course_code)
+            if not code_match:
                 return None
+            
+            # Re-normalize just in case
+            course_code = f"{code_match.group(1)}{code_match.group(2)}"
 
-            grade = str(row[col_map.get("grade", -1)] or "").strip()
+            grade = str(row[col_map.get("grade", -1)] or "").strip().upper().replace(" ", "")
             if not cls.GRADE_RE.match(grade):
                 return None
 
@@ -265,10 +268,11 @@ class PDFParser:
         semester = "Unknown"
 
         for cell in row_strs:
-            if not course_code and cls.COURSE_CODE_RE.match(cell):
-                course_code = cell
+            c_match = cls.COURSE_CODE_RE.match(cell)
+            if not course_code and c_match:
+                course_code = f"{c_match.group(1)}{c_match.group(2)}".upper()
             elif not grade and cls.GRADE_RE.match(cell):
-                grade = cell
+                grade = cell.upper().replace(" ", "")
             elif cls.SEMESTER_RE.search(cell):
                 sem_m = cls.SEMESTER_RE.search(cell)
                 semester = f"{sem_m.group(1).title()} {sem_m.group(2)}"

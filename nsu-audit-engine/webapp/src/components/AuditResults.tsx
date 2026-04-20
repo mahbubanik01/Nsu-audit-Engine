@@ -46,7 +46,12 @@ export default function AuditResults({ data }: AuditResultsProps) {
               <Flame className="w-4 h-4 text-orange-400" />
               <span>Credits</span>
             </span>
-            <span className="font-bold text-slate-900 text-xl">{summary.credits_earned} <span className="text-slate-400 text-base">/ {summary.credits_required}</span></span>
+            <div className="text-right">
+              <span className="font-bold text-slate-900 text-xl">{summary.credits_earned} <span className="text-slate-400 text-base">/ {summary.credits_required}</span></span>
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                {data.raw_records || 0} Records Parsed
+              </div>
+            </div>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden ring-1 ring-inset ring-slate-200/50">
             <div 

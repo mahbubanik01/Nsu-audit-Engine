@@ -7,6 +7,12 @@ const API_KEY = import.meta.env.VITE_NSU_API_KEY || 'dev_secret_key';
 // When running as a native Android app, localhost doesn't work.
 // Use 10.0.2.2 for Android emulator, or your deployed server URL.
 function getApiUrl(): string {
+  // 0. Manual Override (useful for pasting Cloudflare Tunnel URL in UI)
+  if (typeof window !== 'undefined') {
+    const manualUrl = localStorage.getItem('NSU_API_OVERRIDE');
+    if (manualUrl) return manualUrl;
+  }
+
   // 1. Check for explicit environment variable (REQUIRED for Cloudflare Tunnel to bypass Vercel limits)
   const envUrl = import.meta.env.VITE_API_BASE_URL;
   if (envUrl) return envUrl;

@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { UploadZone } from '../components/UploadZone';
 import { api } from '../services/api';
 import type { AuditResponse } from '../types';
-import { LogOut, User as UserIcon, BookOpen, AlertTriangle, History, Upload, FolderOpen } from 'lucide-react';
+import { LogOut, User as UserIcon, BookOpen, AlertTriangle, History, Upload, FolderOpen, Settings, Save, X, Globe } from 'lucide-react';
+import { cn } from '../lib/utils';
 import AuditResults from '../components/AuditResults';
 
 interface CallEntry {
@@ -27,6 +28,17 @@ export default function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [pastAudits, setPastAudits] = useState<AuditResponse[]>([]);
   const [pastAuditsLoading, setPastAuditsLoading] = useState(false);
+  const [showTunnelInput, setShowTunnelInput] = useState(false);
+  const [tunnelUrl, setTunnelUrl] = useState(localStorage.getItem('NSU_API_OVERRIDE') || '');
+
+  const saveTunnelUrl = () => {
+    if (tunnelUrl.trim()) {
+      localStorage.setItem('NSU_API_OVERRIDE', tunnelUrl.trim());
+    } else {
+      localStorage.removeItem('NSU_API_OVERRIDE');
+    }
+    window.location.reload(); 
+  };
 
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
@@ -133,7 +145,20 @@ export default function Dashboard() {
             </button>
           </div>
           
-          <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => setShowTunnelInput(!showTunnelInput)}
+              className={cn(
+                "flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                showTunnelInput 
+                  ? "bg-slate-900 border-slate-900 text-white" 
+                  : "bg-white border-slate-200 text-slate-500 hover:text-slate-900"
+              )}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>{localStorage.getItem('NSU_API_OVERRIDE') ? 'Engine Connected' : 'Connect Engine'}</span>
+            </button>
+
             <div className="flex items-center space-x-2 text-xs font-bold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-full">
               {user?.picture ? (
                 <img src={user.picture} alt="" className="w-4 h-4 rounded-full" />
@@ -150,6 +175,45 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {/* OCR Tunnel Settings Bar */}
+        {showTunnelInput && (
+          <div className="bg-slate-900 text-white px-6 py-4 animate-in slide-in-from-top duration-300">
+            <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-start space-x-3">
+                <div className="bg-white/10 p-2 rounded-lg mt-0.5">
+                  <Settings className="w-4 h-4 text-slate-300" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold">Local Engine Configuration</h4>
+                  <p className="text-[10px] text-slate-400 font-medium">To scan images on Vercel, paste your Cloudflare Tunnel URL here.</p>
+                </div>
+              </div>
+              <div className="flex items-center bg-white/10 rounded-xl p-1.5 w-full md:w-[400px]">
+                <input 
+                  type="text" 
+                  value={tunnelUrl}
+                  onChange={(e) => setTunnelUrl(e.target.value)}
+                  placeholder="https://your-tunnel-url.trycloudflare.com"
+                  className="bg-transparent border-none focus:ring-0 text-sm font-mono flex-1 px-3 text-white placeholder-slate-500"
+                />
+                <button 
+                  onClick={saveTunnelUrl}
+                  className="bg-white text-slate-900 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors flex items-center space-x-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>Connect</span>
+                </button>
+                <button 
+                  onClick={() => setShowTunnelInput(false)}
+                  className="p-1.5 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content Area */}

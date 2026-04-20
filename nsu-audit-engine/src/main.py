@@ -95,6 +95,9 @@ Supported Formats: .csv, .pdf, .docx
         # Whoami command
         subparsers.add_parser('whoami', help='Show current session')
 
+        # History command
+        subparsers.add_parser('history', help='Show audit history')
+
         # Audit arguments (work without subcommand for backward compat)
         parser.add_argument(
             '-l', '--level',
@@ -182,6 +185,9 @@ Supported Formats: .csv, .pdf, .docx
                 return
             elif args.command == 'whoami':
                 self._handle_whoami()
+                return
+            elif args.command == 'history':
+                self._handle_history()
                 return
 
             # For audit commands, require level and transcript
@@ -302,6 +308,42 @@ Supported Formats: .csv, .pdf, .docx
         else:
             print(f"✗ Session expired: {msg}")
             print("  Run `python main.py login` to re-authenticate.")
+
+    def _handle_history(self):
+        """Handle the history subcommand."""
+        saved_token = self.session_store.get_token()
+        if not saved_token:
+            print("No active session. Run `python main.py login` to authenticate.")
+            return
+
+        import requests
+        api_url = AuthConfig.from_env().api_base_url or "http://localhost:8000"
+        print(f"Fetching history from {api_url}...")
+        
+        try:
+            response = requests.get(
+                f"{api_url}/api/v1/audit/history",
+                headers={"Authorization": f"Bearer {saved_token}"}
+            )
+            response.raise_for_status()
+            data = response.json()
+            audits = data.get("audits", [])
+            
+            if not audits:
+                print("No past audits found.")
+                return
+                
+            print(f"\n{'DATE':<25} {'PROGRAM':<10} {'CGPA':<8} {'CREDITS':<15}")
+            print("-" * 65)
+            for audit in audits:
+                ts = audit.get("scan_timestamp", "N/A")[:19].replace("T", " ")
+                prog = audit.get("program", "N/A")
+                cgpa = f"{audit.get('summary', {}).get('cgpa', 0.0):.2f}"
+                credits = f"{audit.get('summary', {}).get('credits_earned', 0)} / {audit.get('summary', {}).get('credits_required', 124)}"
+                print(f"{ts:<25} {prog:<10} {cgpa:<8} {credits:<15}")
+            
+        except Exception as e:
+            print(f"✗ Failed to fetch history: {e}")
 
     # ─── Validation ────────────────────────────────────────────────
 
