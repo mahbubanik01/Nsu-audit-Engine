@@ -59,7 +59,13 @@ async def verify_google_auth(data: GoogleAuthVerify):
         token = auth_service.token_manager.issue_token(email)
         return TokenResponse(
             access_token=token,
-            user={"email": email, "name": idinfo.get("name"), "picture": idinfo.get("picture")}
+            user={
+                "email": email, 
+                "name": idinfo.get("name"), 
+                "picture": idinfo.get("picture"),
+                "domain": "northsouth.edu",
+                "role": "student"
+            }
         )
         
     except ValueError as e:

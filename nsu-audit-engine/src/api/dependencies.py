@@ -13,8 +13,10 @@ async def verify_api_key(api_key: str = Security(api_key_header)) -> str:
     FastAPI dependency to verify API Key.
     Expects header: "X-API-Key: <token>"
     """
-    # If API key is wrong or missing
-    if api_key != config.nsu_api_key:
+    # Load config inside the function to ensure it has the latest .env values
+    current_config = AuthConfig.from_env()
+    
+    if api_key != current_config.nsu_api_key:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid or missing X-API-Key"

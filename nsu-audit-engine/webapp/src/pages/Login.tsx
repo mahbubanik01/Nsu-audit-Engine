@@ -21,20 +21,8 @@ export default function Login() {
 
   const GOOGLE_CLIENT_ID = '834924534674-dpe5j0pogrc64c3j23v6d2584ubn72kn.apps.googleusercontent.com';
 
-  useEffect(() => {
-    // Check if Google Identity Services script is loaded
-    const checkScript = () => {
-      if ((window as any).google?.accounts?.id) {
-        console.log('✅ Google Identity Services loaded');
-        setGoogleScriptLoaded(true);
-      } else {
-        console.warn('⏳ Waiting for Google script...');
-        setTimeout(checkScript, 500);
-      }
-    };
-    checkScript();
-  }, []);
-
+  // No manual script loading check needed, @react-oauth/google handles it.
+  
   const handleGoogleSuccess = async (credentialResponse: CredentialResponse) => {
     setIsLoading(true);
     setError('');
@@ -121,19 +109,15 @@ export default function Login() {
             <div className="space-y-6">
               {/* Google Sign-in Wrapper */}
               <div id="google-button-container" className="flex justify-center min-h-[44px] w-full">
-                {googleScriptLoaded ? (
-                  <GoogleLogin
-                    onSuccess={handleGoogleSuccess}
-                    onError={() => setError('Google sign-in failed.')}
-                    useOneTap
-                    theme="filled_blue"
-                    size="large"
-                    shape="pill"
-                    width="320"
-                  />
-                ) : (
-                  <div className="animate-pulse bg-slate-100 h-11 w-full rounded-full" />
-                )}
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={() => setError('Google sign-in failed.')}
+                  useOneTap
+                  theme="filled_blue"
+                  size="large"
+                  shape="pill"
+                  width="320"
+                />
               </div>
               
               <div className="relative">
