@@ -9,10 +9,26 @@ Requires: pip install pytesseract Pillow
 """
 
 import re
+import os
+import sys
 from typing import Optional
 from pathlib import Path
 
 from models.transcript import Transcript, CourseRecord
+
+try:
+    import pytesseract
+    from PIL import Image, ImageFilter
+    
+    # Auto-detect Tesseract on Windows if not in PATH
+    if sys.platform == 'win32':
+        standard_path = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+        if os.path.exists(standard_path):
+            pytesseract.pytesseract.tesseract_cmd = standard_path
+except ImportError:
+    pytesseract = None
+    Image = None
+    ImageFilter = None
 
 
 class ImageParser:

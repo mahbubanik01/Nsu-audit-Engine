@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +10,6 @@ export default function Login() {
   const { login } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
 
   // Dev/OTP Login state
   const [showEmailLogin, setShowEmailLogin] = useState(false);

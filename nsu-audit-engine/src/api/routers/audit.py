@@ -108,7 +108,7 @@ async def run_audit(
                 raise ValueError(f"Unknown program type: {program_enum}")
                 
             report = AuditCalculator.perform_audit(transcript, program_obj)
-            print(f"[API] Audit complete. Credits earned: {report.total_credits_earned}")
+            print(f"[API] Audit complete. Credits earned: {report.credit_report.total_earned_credits}")
         except Exception as e:
             print(f"[API] Audit calculation failed: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to calculate audit: {str(e)}")
